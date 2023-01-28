@@ -26,10 +26,79 @@ exports.addBilling = async (req, res) => {
 
     const billingId = await checkId(uniqueId().toString());
 
-    const save = await Bill.insertOne({ ...data, billingId, createdBy: "email", createdAt: timeStamp() });
+    const save = await Bill.insertOne({ ...data, billingId, createdBy: "email", isDeleted: false, createdAt: timeStamp() });
     if (!save) return res.status(400).send("Something went wrong");
 
     res.send({ status: "success", billingId, message: "Billing added successfully" });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+};
+
+exports.getBillingList = async (req, res) => {
+  try {
+    const Bill = await getDb().collection("bills");
+    //const { email } = req.user;
+
+    const { page, limit, searchBy } = req.query;
+    if (!page || !limit) return res.status(400).send("Invalid query");
+
+    const skip = (page - 1) * limit;
+
+    if (searchBy) {
+      const find = await Bill.aggregate([
+        {
+          $match: {
+            isDeleted: false,
+            $or: [
+              { name: { $regex: searchBy, $options: "i" } },
+              { email: { $regex: searchBy, $options: "i" } },
+              { phone: { $regex: searchBy, $options: "i" } },
+            ],
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            name: 1,
+            email: 1,
+            phone: 1,
+            payableAmount: 1,
+            billingId: 1,
+            createdAt: 1,
+          },
+        },
+        { $skip: skip },
+        { $limit: parseInt(limit) },
+        { $sort: { createdAt: -1 } },
+      ]).toArray();
+
+      if (!find || !find.length) return res.status(404).send("No billing found");
+
+      return res.send({ status: "success", data: find, message: "Billing fetched successfully" });
+    }
+
+    const find = await Bill.aggregate([
+      { $match: { isDeleted: false } },
+      {
+        $project: {
+          _id: 0,
+          name: 1,
+          email: 1,
+          phone: 1,
+          payableAmount: 1,
+          billingId: 1,
+          createdAt: 1,
+        },
+      },
+      { $skip: skip },
+      { $limit: parseInt(limit) },
+      { $sort: { createdAt: -1 } },
+    ]).toArray();
+
+    if (!find || !find.length) return res.status(404).send("No billing found");
+
+    return res.send({ status: "success", data: find, message: "Billing fetched successfully" });
   } catch (error) {
     res.status(500).send(error.message);
   }
