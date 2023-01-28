@@ -8,7 +8,9 @@ router.post("/register", Auth.register);
 router.post("/add-billing", billings.addBilling);
 
 router.get("/billing-list", billings.getBillingList);
-// router.post("/update-billing/:id", verifyToken, billing.updateBill);
-// router.post("/delete-billing/:id", verifyToken, billing.deleteBill);
+
+router.put("/update-billing/:billingId", billings.updateBill);
+
+router.delete("/delete-billing/:billingId", billings.deleteBill);
 
 module.exports = router;

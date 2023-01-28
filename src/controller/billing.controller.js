@@ -103,3 +103,49 @@ exports.getBillingList = async (req, res) => {
     res.status(500).send(error.message);
   }
 };
+
+exports.updateBill = async (req, res) => {
+  try {
+    const Bill = await getDb().collection("bills");
+
+    const { billingId } = req.params;
+    if (!billingId) return res.status(400).send("Invalid billing id");
+
+    // check if billing data is valid
+    const isDataValid = billingValidate(req.body);
+    if (isDataValid.error) return res.status(400).send(isDataValid.error.details[0].message);
+
+    const data = isDataValid.value;
+
+    // check if billing exist
+    const isExist = await Bill.findOne({ billingId, isDeleted: false });
+    if (!isExist) return res.status(404).send("No billing found");
+
+    // update billing
+    await Bill.updateOne({ billingId, isDeleted: false }, { $set: { ...data, updatedAt: timeStamp() } });
+
+    res.send({ status: "success", message: "Billing updated successfully" });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+};
+
+exports.deleteBill = async (req, res) => {
+  try {
+    const Bill = await getDb().collection("bills");
+
+    const { billingId } = req.params;
+    if (!billingId) return res.status(400).send("Invalid billing id");
+
+    // check if billing exist
+    const isExist = await Bill.findOne({ billingId, isDeleted: false });
+    if (!isExist) return res.status(404).send("No billing found");
+
+    // delete billing
+    await Bill.updateOne({ billingId, isDeleted: false }, { $set: { isDeleted: true, updatedAt: timeStamp() } });
+
+    res.send({ status: "success", message: "Billing deleted successfully" });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+};
