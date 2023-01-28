@@ -3,6 +3,8 @@ const { getDb } = require("../database/db");
 const { createToken } = require("../utils/createToken");
 const { timeStamp } = require("../utils/timestamp");
 const { authValidate } = require("../validators/validate");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
   try {
@@ -11,21 +13,27 @@ exports.register = async (req, res) => {
     const isDataValid = authValidate(req.body);
     if (isDataValid.error) return res.status(400).send(isDataValid.error.details[0].message);
 
-    const data = isDataValid.value;
+    const { email, password } = isDataValid.value;
 
     // check if email already exist
-    const isExist = await User.findOne({ email: data.email });
+    const isExist = await User.findOne({ email });
     if (isExist) return res.status(400).send("Email already exist");
 
     // hash password
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(data.password, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     // save user
-    const save = await User.insertOne({ ...data, password: hashedPassword, createdAt: timeStamp() });
+    const save = await User.insertOne({ email, password: hashedPassword, createdAt: timeStamp() });
     if (!save) return res.status(400).send("Something went wrong");
 
-    res.send({ status: "success", message: "User registered successfully" });
+    // create token
+    const token = await createToken({ email }, { expiresIn: "30d" });
+    const decode = await jwt.verify(token, process.env.JWT_SECRET);
+
+    const userInfo = { email, token, expiresAt: decode.exp };
+
+    res.send({ status: "success", userInfo, message: "User registered successfully" });
   } catch (error) {
     res.status(500).send(error.message);
   }
