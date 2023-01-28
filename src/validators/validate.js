@@ -1,9 +1,17 @@
 const joi = require("joi");
 
-exports.authValidate = (data) => {
+exports.registerValidate = (data) => {
   const schema = joi.object({
     email: joi.string().required().email(),
     password: joi.string().min(6).required(),
+  });
+  return schema.validate(data);
+};
+
+exports.loginValidate = (data) => {
+  const schema = joi.object({
+    email: joi.string().required().email(),
+    password: joi.string().required(),
   });
   return schema.validate(data);
 };
