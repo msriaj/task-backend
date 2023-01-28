@@ -67,3 +67,22 @@ exports.login = async (req, res) => {
     res.status(500).send(error.message);
   }
 };
+
+exports.checkToken = async (req, res) => {
+  try {
+    const authorization = req.headers.authorization;
+    if (!authorization) return res.status(401).send("Access denied");
+
+    const token = authorization.split(" ")[1];
+    if (!token) return res.status(401).send("Access denied");
+
+    const decode = await jwt.verify(token, process.env.JWT_SECRET);
+
+    const { email, exp } = decode;
+    const userInfo = { user: email, expiresAt: exp };
+
+    res.send({ status: "success", ...userInfo, message: "User logged in successfully" });
+  } catch (error) {
+    res.status(400).send("Invalid token");
+  }
+};

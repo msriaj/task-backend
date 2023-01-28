@@ -1,13 +1,14 @@
 const billings = require("../controller/billing.controller");
 const Auth = require("../controller/auth.controller");
-const { verifyToken } = require("../middleware/tokenVerify");
 const router = require("express").Router();
+const { tokenVerify } = require("../middleware/tokenVerify");
 
 router.post("/login", Auth.login);
 router.post("/register", Auth.register);
 router.post("/add-billing", billings.addBilling);
 
-router.get("/billing-list", billings.getBillingList);
+router.get("/auth/token-verify", Auth.checkToken);
+router.get("/billing-list", tokenVerify, billings.getBillingList);
 
 router.put("/update-billing/:billingId", billings.updateBill);
 
