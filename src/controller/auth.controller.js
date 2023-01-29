@@ -32,6 +32,27 @@ exports.register = async (req, res) => {
     const decode = await jwt.verify(token, process.env.JWT_SECRET);
 
     const userInfo = { email, token, expiresAt: decode.exp };
+    //get total payable amount
+    const Bill = await getDb().collection("bills");
+
+    const totalPayable = await Bill.aggregate([
+      {
+        $match: {
+          isDeleted: false,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalPayable: {
+            $sum: "$payableAmount",
+          },
+        },
+      },
+    ]).toArray();
+
+    console.log(totalPayable);
+    userInfo.totalPayable = totalPayable[0].totalPayable;
 
     res.send({ status: "success", userInfo, message: "User registered successfully" });
   } catch (error) {
@@ -62,6 +83,27 @@ exports.login = async (req, res) => {
 
     const userInfo = { email, token, expiresAt: decode.exp };
 
+    const Bill = await getDb().collection("bills");
+    if (Bill) {
+      const totalPayable = await Bill.aggregate([
+        {
+          $match: {
+            isDeleted: false,
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalPayable: {
+              $sum: "$payableAmount",
+            },
+          },
+        },
+      ]).toArray();
+
+      userInfo.totalPayable = totalPayable[0]?.totalPayable;
+    }
+
     res.send({ status: "success", userInfo, message: "User logged in successfully" });
   } catch (error) {
     res.status(500).send(error.message);
@@ -80,9 +122,28 @@ exports.checkToken = async (req, res) => {
 
     const { email, exp } = decode;
     const userInfo = { user: email, expiresAt: exp };
+    const Bill = await getDb().collection("bills");
+    const totalPaid = await Bill.aggregate([
+      {
+        $match: {
+          isDeleted: false,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalPayable: {
+            $sum: "$payableAmount",
+          },
+        },
+      },
+    ]).toArray();
 
-    res.send({ status: "success", ...userInfo, message: "User logged in successfully" });
+    const totalPayable = totalPaid[0]?.totalPayable;
+
+    res.send({ status: "success", ...userInfo, totalPayable, message: "User logged in successfully" });
   } catch (error) {
+    console.log(error.message);
     res.status(400).send("Invalid token");
   }
 };

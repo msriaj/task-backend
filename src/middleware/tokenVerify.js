@@ -1,3 +1,4 @@
+const jwt = require("jsonwebtoken");
 exports.tokenVerify = async (req, res, next) => {
   try {
     const authorization = req.headers.authorization;
@@ -11,6 +12,7 @@ exports.tokenVerify = async (req, res, next) => {
 
     next();
   } catch (error) {
+    console.log(error);
     res.status(400).send("Invalid token");
   }
 };

@@ -53,7 +53,6 @@ exports.getBillingList = async (req, res) => {
       ];
 
       const billCount = await Bill.countDocuments({ isDeleted: false, $or: query });
-      const pageNo = Math.ceil(billCount / limit);
 
       const find = await Bill.aggregate([
         {
@@ -62,6 +61,7 @@ exports.getBillingList = async (req, res) => {
             $or: query,
           },
         },
+        { $sort: { createdAt: -1 } },
         {
           $project: {
             _id: 0,
@@ -80,14 +80,14 @@ exports.getBillingList = async (req, res) => {
 
       if (!find || !find.length) return res.status(404).send("No billing found");
 
-      return res.send({ status: "success", billList: find, pageNo, message: "Billing fetched successfully" });
+      return res.send({ status: "success", billList: find, total: billCount, message: "Billing fetched successfully" });
     }
 
     const billCount = await Bill.countDocuments({ isDeleted: false });
-    const pageNo = Math.ceil(billCount / limit);
 
     const find = await Bill.aggregate([
       { $match: { isDeleted: false } },
+      { $sort: { createdAt: -1 } },
       {
         $project: {
           _id: 0,
@@ -101,12 +101,11 @@ exports.getBillingList = async (req, res) => {
       },
       { $skip: skip },
       { $limit: parseInt(limit) },
-      { $sort: { createdAt: -1 } },
     ]).toArray();
 
     if (!find || !find.length) return res.status(404).send("No billing found");
 
-    return res.send({ status: "success", billList: find, pageNo, message: "Billing fetched successfully" });
+    return res.send({ status: "success", billList: find, total: billCount, message: "Billing fetched successfully" });
   } catch (error) {
     res.status(500).send(error.message);
   }
