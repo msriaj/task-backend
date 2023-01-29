@@ -7,7 +7,7 @@ const { billingValidate } = require("../validators/validate");
 exports.addBilling = async (req, res) => {
   try {
     const Bill = await getDb().collection("bills");
-    //const { email } = req.user;
+    const { email } = req.user;
 
     const isDataValid = billingValidate(req.body);
     if (isDataValid.error) return res.status(400).send(isDataValid.error.details[0].message);
@@ -26,7 +26,7 @@ exports.addBilling = async (req, res) => {
 
     const billingId = await checkId(uniqueId().toString());
 
-    const save = await Bill.insertOne({ ...data, billingId, createdBy: "email", isDeleted: false, createdAt: timeStamp() });
+    const save = await Bill.insertOne({ ...data, billingId, createdBy: email, isDeleted: false, createdAt: timeStamp() });
     if (!save) return res.status(400).send("Something went wrong");
 
     res.send({ status: "success", billingId, message: "Billing added successfully" });
@@ -114,7 +114,7 @@ exports.getBillingList = async (req, res) => {
 exports.updateBill = async (req, res) => {
   try {
     const Bill = await getDb().collection("bills");
-
+    const { email } = req.user;
     const { billingId } = req.params;
     if (!billingId) return res.status(400).send("Invalid billing id");
 
@@ -129,7 +129,7 @@ exports.updateBill = async (req, res) => {
     if (!isExist) return res.status(404).send("No billing found");
 
     // update billing
-    await Bill.updateOne({ billingId, isDeleted: false }, { $set: { ...data, updatedAt: timeStamp() } });
+    await Bill.updateOne({ billingId, isDeleted: false }, { $set: { ...data, updatedBy: email, updatedAt: timeStamp() } });
 
     res.send({ status: "success", message: "Billing updated successfully" });
   } catch (error) {
@@ -140,7 +140,7 @@ exports.updateBill = async (req, res) => {
 exports.deleteBill = async (req, res) => {
   try {
     const Bill = await getDb().collection("bills");
-
+    const { email } = req.user;
     const { billingId } = req.params;
     if (!billingId) return res.status(400).send("Invalid billing id");
 
@@ -149,7 +149,7 @@ exports.deleteBill = async (req, res) => {
     if (!isExist) return res.status(404).send("No billing found");
 
     // delete billing
-    await Bill.updateOne({ billingId, isDeleted: false }, { $set: { isDeleted: true, updatedAt: timeStamp() } });
+    await Bill.updateOne({ billingId, isDeleted: false }, { $set: { isDeleted: true, deletedBy: email, updatedAt: timeStamp() } });
 
     res.send({ status: "success", message: "Billing deleted successfully" });
   } catch (error) {
