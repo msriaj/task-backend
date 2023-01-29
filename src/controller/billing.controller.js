@@ -46,15 +46,20 @@ exports.getBillingList = async (req, res) => {
     const skip = (page - 1) * limit;
 
     if (searchBy) {
+      const query = [
+        { name: { $regex: searchBy, $options: "i" } },
+        { email: { $regex: searchBy, $options: "i" } },
+        { phone: { $regex: searchBy, $options: "i" } },
+      ];
+
+      const billCount = await Bill.countDocuments({ isDeleted: false, $or: query });
+      const pageNo = Math.ceil(billCount / limit);
+
       const find = await Bill.aggregate([
         {
           $match: {
             isDeleted: false,
-            $or: [
-              { name: { $regex: searchBy, $options: "i" } },
-              { email: { $regex: searchBy, $options: "i" } },
-              { phone: { $regex: searchBy, $options: "i" } },
-            ],
+            $or: query,
           },
         },
         {
@@ -75,8 +80,11 @@ exports.getBillingList = async (req, res) => {
 
       if (!find || !find.length) return res.status(404).send("No billing found");
 
-      return res.send({ status: "success", data: find, message: "Billing fetched successfully" });
+      return res.send({ status: "success", billList: find, pageNo, message: "Billing fetched successfully" });
     }
+
+    const billCount = await Bill.countDocuments({ isDeleted: false });
+    const pageNo = Math.ceil(billCount / limit);
 
     const find = await Bill.aggregate([
       { $match: { isDeleted: false } },
@@ -98,7 +106,7 @@ exports.getBillingList = async (req, res) => {
 
     if (!find || !find.length) return res.status(404).send("No billing found");
 
-    return res.send({ status: "success", data: find, message: "Billing fetched successfully" });
+    return res.send({ status: "success", billList: find, pageNo, message: "Billing fetched successfully" });
   } catch (error) {
     res.status(500).send(error.message);
   }

@@ -8,7 +8,7 @@ router.post("/register", Auth.register);
 router.post("/add-billing", billings.addBilling);
 
 router.get("/auth/token-verify", Auth.checkToken);
-router.get("/billing-list", tokenVerify, billings.getBillingList);
+router.get("/billing-list", billings.getBillingList);
 
 router.put("/update-billing/:billingId", billings.updateBill);
 
